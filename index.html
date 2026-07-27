@@ -207,6 +207,14 @@
   .goal-result .big { font-size: 1.35rem; font-weight: 900; }
 
   .note { color: var(--sub); font-size: 0.78rem; margin-top: 10px; }
+  .share-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .share-btn {
+    padding: 13px 8px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff;
+    font-size: 0.92rem; font-weight: 800; font-family: inherit; cursor: pointer;
+  }
+  .share-btn:active { opacity: 0.85; }
+  .share-btn.outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
   footer { text-align: center; color: var(--sub); font-size: 0.78rem; margin-top: 28px; }
   footer p + p { margin-top: 4px; }
 </style>
@@ -265,6 +273,11 @@
     </div>
     <div class="goal-result" id="goalResult">목표 평균과 남은 학점을 입력해 보세요.</div>
     <p class="note">남은 학점 = 앞으로 성적표에 반영될 과목들의 학점(단위수) 합계</p>
+  </div>
+
+  <div class="share-row">
+    <button class="share-btn" id="shareBtn">친구에게 공유</button>
+    <button class="share-btn outline" id="copyLinkBtn">링크 복사</button>
   </div>
 
   <footer>
@@ -558,6 +571,39 @@
     state.mode = mode;
     render();
   }
+
+  var SHARE = {
+    title: "내신 등급 계산기",
+    text: "🎓 석차만 넣으면 내신 등급 자동 계산! 목표 등급까지 필요한 성적도 알려줘",
+    url: location.href.split("?")[0].split("#")[0]
+  };
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) { /* 지원 안 되면 무시 */ }
+    document.body.removeChild(ta);
+  }
+
+  function copyLink(btn, doneLabel, defaultLabel) {
+    var text = SHARE.text + "\n" + SHARE.url;
+    function done() { btn.textContent = doneLabel; setTimeout(function () { btn.textContent = defaultLabel; }, 2000); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+    } else { fallbackCopy(text); done(); }
+  }
+
+  document.getElementById("shareBtn").addEventListener("click", function () {
+    if (navigator.share) {
+      navigator.share(SHARE).catch(function () { /* 사용자가 공유창을 닫으면 무시 */ });
+    } else {
+      copyLink(this, "링크가 복사됐어요!", "친구에게 공유");
+    }
+  });
+  document.getElementById("copyLinkBtn").addEventListener("click", function () {
+    copyLink(this, "복사됐어요!", "링크 복사");
+  });
 
   load();
   render();

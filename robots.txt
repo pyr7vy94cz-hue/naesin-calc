@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pyr7vy94cz-hue.github.io/naesin-calc/sitemap.xml

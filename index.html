@@ -284,6 +284,16 @@
 
   function blankSubject() { return { name: "", credits: "", total: "", rank: "", grade: "" }; }
 
+  // 행마다 다른 입력 예시(placeholder) — 학점은 4학점으로 통일
+  var EXAMPLES = [
+    { name: "예: 국어", total: "131명", rank: "15등" },
+    { name: "예: 수학", total: "129명", rank: "18등" },
+    { name: "예: 영어", total: "130명", rank: "7등" },
+    { name: "예: 한국사", total: "128명", rank: "42등" },
+    { name: "예: 통합과학", total: "126명", rank: "23등" },
+    { name: "예: 통합사회", total: "132명", rank: "58등" }
+  ];
+
   function load() {
     try {
       var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -386,13 +396,14 @@
     state.subjects.forEach(function (s, i) {
       var row = document.createElement("div");
       row.className = "subject-row" + (isRank ? "" : " grade-mode");
+      var ex = EXAMPLES[i % EXAMPLES.length];
       var html =
-        '<input class="f-name" type="text" placeholder="예: 수학" value="' + escapeHtml(s.name) + '" data-i="' + i + '" data-k="name">' +
-        '<input class="f-credits" type="number" inputmode="numeric" min="1" step="1" placeholder="3학점" value="' + escapeHtml(s.credits) + '" data-i="' + i + '" data-k="credits">';
+        '<input class="f-name" type="text" placeholder="' + ex.name + '" value="' + escapeHtml(s.name) + '" data-i="' + i + '" data-k="name">' +
+        '<input class="f-credits" type="number" inputmode="numeric" min="1" step="1" placeholder="4학점" value="' + escapeHtml(s.credits) + '" data-i="' + i + '" data-k="credits">';
       if (isRank) {
         html +=
-          '<input class="f-total" type="number" inputmode="numeric" min="1" step="1" placeholder="129명" value="' + escapeHtml(s.total) + '" data-i="' + i + '" data-k="total">' +
-          '<input class="f-rank" type="number" inputmode="decimal" min="1" step="0.5" placeholder="18등" value="' + escapeHtml(s.rank) + '" data-i="' + i + '" data-k="rank">' +
+          '<input class="f-total" type="number" inputmode="numeric" min="1" step="1" placeholder="' + ex.total + '" value="' + escapeHtml(s.total) + '" data-i="' + i + '" data-k="total">' +
+          '<input class="f-rank" type="number" inputmode="decimal" min="1" step="0.5" placeholder="' + ex.rank + '" value="' + escapeHtml(s.rank) + '" data-i="' + i + '" data-k="rank">' +
           badgeHtml(s);
       } else {
         html += '<select class="f-grade" data-i="' + i + '" data-k="grade">' + gradeOptions(s.grade) + "</select>";

@@ -183,14 +183,15 @@
   </header>
 
   <div class="sys-toggle" role="tablist">
-    <button id="sys9" role="tab">9등급제<span>현 고3 (2024년 입학)</span></button>
     <button id="sys5" role="tab">5등급제<span>현 고1·고2 (2025년~ 입학)</span></button>
+    <button id="sys9" role="tab">9등급제<span>현 고3 (2024년 입학)</span></button>
   </div>
 
   <div class="result">
     <div class="label">내 평균 등급</div>
     <div class="value" id="avgValue">—</div>
     <div class="meta" id="avgMeta">과목을 입력하면 자동으로 계산돼요</div>
+    <div class="meta">소수점 셋째 자리에서 반올림해 표시해요</div>
   </div>
 
   <div class="card">
@@ -236,7 +237,7 @@
     9: [4, 11, 23, 40, 60, 77, 89, 96, 100],
     5: [10, 34, 66, 90, 100]
   };
-  var state = { system: 9, mode: "rank", subjects: [] };
+  var state = { system: 5, mode: "rank", subjects: [] };
 
   var rowsEl = document.getElementById("rows");
   var rowHead = document.getElementById("rowHead");

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내신 등급 계산기 — 석차만 넣으면 등급까지 자동 계산</title>
+<meta name="description" content="회원가입 없이 모바일에서 바로 쓰는 내신 등급 계산기. 수강자수와 석차만 입력하면 등급을 자동 산출하고, 9등급제(현 고3)·5등급제(현 고1·고2) 평균 등급과 목표 등급 역산까지 한 번에.">
+<meta property="og:title" content="내신 등급 계산기 — 석차만 넣으면 등급까지 자동 계산">
+<meta property="og:description" content="수강자수·석차로 등급 자동 산출, 평균 등급 계산과 목표 등급 역산을 한 번에.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --text: #1a2233;
+    --sub: #5b6577;
+    --line: #e3e8f0;
+    --accent: #3b6ef6;
+    --accent-soft: #eaf0fe;
+    --good: #15803d;
+    --warn: #b45309;
+    --bad: #b91c1c;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10141c;
+      --card: #1a2130;
+      --text: #e8ecf4;
+      --sub: #9aa5b8;
+      --line: #2a3346;
+      --accent: #6b93ff;
+      --accent-soft: #223054;
+      --good: #4ade80;
+      --warn: #fbbf24;
+      --bad: #f87171;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { text-align: center; padding: 18px 0 22px; }
+  header h1 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
+  header p { color: var(--sub); font-size: 0.9rem; margin-top: 6px; }
+
+  .sys-toggle {
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 5px; gap: 5px; margin-bottom: 16px;
+  }
+  .sys-toggle button {
+    border: 0; background: transparent; color: var(--sub);
+    padding: 11px 8px; border-radius: 10px; font-size: 0.95rem; font-weight: 700;
+    font-family: inherit; cursor: pointer; transition: background .15s, color .15s;
+  }
+  .sys-toggle button.active { background: var(--accent); color: #fff; }
+  .sys-toggle button span { display: block; font-size: 0.72rem; font-weight: 500; opacity: 0.85; margin-top: 2px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px 16px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 1.02rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .card .hint { color: var(--sub); font-size: 0.82rem; margin-bottom: 12px; }
+
+  .mode-toggle {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+    background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 14px;
+  }
+  .mode-toggle button {
+    border: 0; background: transparent; color: var(--sub);
+    padding: 8px 6px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+    font-family: inherit; cursor: pointer;
+  }
+  .mode-toggle button.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .subject-row {
+    display: grid; gap: 6px; margin-bottom: 10px; align-items: center;
+    grid-template-columns: 1fr 60px 80px 60px 52px 28px;
+    grid-template-areas: "name credits total rank grade del";
+  }
+  .subject-row.grade-mode {
+    grid-template-columns: 1fr 70px 90px 28px;
+    grid-template-areas: "name credits grade del";
+  }
+  .subject-row input, .subject-row select {
+    width: 100%; padding: 10px 8px; font-size: 0.9rem; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .subject-row input:focus, .subject-row select:focus, .goal-inputs input:focus { border-color: var(--accent); }
+  .f-name { grid-area: name; }
+  .f-credits { grid-area: credits; }
+  .f-total { grid-area: total; }
+  .f-rank { grid-area: rank; }
+  .f-grade { grid-area: grade; }
+  .f-del { grid-area: del; }
+  .grade-badge {
+    grid-area: grade; text-align: center; font-size: 0.85rem; font-weight: 800;
+    color: var(--accent); background: var(--accent-soft);
+    border-radius: 10px; padding: 10px 2px; white-space: nowrap;
+  }
+  .grade-badge.empty { color: var(--sub); background: var(--bg); font-weight: 600; }
+  .grade-badge.invalid { color: var(--bad); background: transparent; font-weight: 700; }
+  .subject-row .del {
+    grid-area: del; border: 0; background: transparent; color: var(--sub); font-size: 1.2rem;
+    cursor: pointer; padding: 6px 2px; border-radius: 8px; line-height: 1;
+  }
+  .subject-row .del:hover { color: var(--bad); }
+
+  .row-head {
+    display: grid; gap: 6px; padding: 0 2px 6px;
+    grid-template-columns: 1fr 60px 80px 60px 52px 28px;
+    font-size: 0.72rem; color: var(--sub); font-weight: 600;
+  }
+  .row-head.grade-mode { grid-template-columns: 1fr 70px 90px 28px; }
+
+  @media (max-width: 479px) {
+    .row-head { display: none; }
+    .subject-row {
+      grid-template-columns: 1fr 1fr 1fr 64px;
+      grid-template-areas: "name name name del" "credits total rank grade";
+      background: var(--bg); border: 1px solid var(--line);
+      border-radius: 12px; padding: 8px;
+    }
+    .subject-row.grade-mode {
+      grid-template-columns: 1fr 84px 100px 34px;
+      grid-template-areas: "name credits grade del";
+      background: transparent; border: 0; padding: 0;
+    }
+    .subject-row input, .subject-row select { background: var(--card); font-size: 16px; }
+    .subject-row.grade-mode input, .subject-row.grade-mode select { background: var(--bg); }
+    .grade-badge { padding: 12px 2px; }
+  }
+
+  .add-btn {
+    width: 100%; margin-top: 6px; padding: 12px;
+    border: 1.5px dashed var(--line); border-radius: 10px;
+    background: transparent; color: var(--accent); font-weight: 700;
+    font-size: 0.92rem; font-family: inherit; cursor: pointer;
+  }
+  .add-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+  .result {
+    background: var(--accent-soft); border: 1px solid transparent;
+    border-radius: var(--radius); padding: 18px 16px; margin-bottom: 16px;
+    text-align: center;
+  }
+  .result .label { font-size: 0.85rem; color: var(--sub); font-weight: 600; }
+  .result .value { font-size: 2.3rem; font-weight: 900; color: var(--accent); letter-spacing: -0.02em; }
+  .result .value small { font-size: 1.1rem; font-weight: 700; }
+  .result .meta { font-size: 0.82rem; color: var(--sub); margin-top: 2px; }
+
+  .goal-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .goal-inputs label { font-size: 0.78rem; color: var(--sub); font-weight: 600; display: block; margin-bottom: 5px; }
+  .goal-inputs input {
+    width: 100%; padding: 11px 10px; font-size: 1rem; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .goal-result { border-radius: 10px; padding: 13px 14px; font-size: 0.92rem; font-weight: 600; background: var(--bg); }
+  .goal-result.good { color: var(--good); }
+  .goal-result.warn { color: var(--warn); }
+  .goal-result.bad { color: var(--bad); }
+  .goal-result .big { font-size: 1.35rem; font-weight: 900; }
+
+  .note { color: var(--sub); font-size: 0.78rem; margin-top: 10px; }
+  footer { text-align: center; color: var(--sub); font-size: 0.78rem; margin-top: 28px; }
+  footer p + p { margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>내신 등급 계산기</h1>
+    <p>석차만 넣으면 등급까지 자동 계산 · 가입 없이 바로</p>
+  </header>
+
+  <div class="sys-toggle" role="tablist">
+    <button id="sys9" role="tab">9등급제<span>현 고3 (2024년 입학)</span></button>
+    <button id="sys5" role="tab">5등급제<span>현 고1·고2 (2025년~ 입학)</span></button>
+  </div>
+
+  <div class="result">
+    <div class="label">내 평균 등급</div>
+    <div class="value" id="avgValue">—</div>
+    <div class="meta" id="avgMeta">과목을 입력하면 자동으로 계산돼요</div>
+  </div>
+
+  <div class="card">
+    <h2>과목 입력</h2>
+    <p class="hint">등급 × 학점(단위수) 가중평균으로 평균 등급을 계산해요. 학점(단위수)은 성적표에 과목별로 적혀 있고, 보통 그 과목의 주당 수업 시간과 같아요.</p>
+    <div class="mode-toggle">
+      <button id="modeRank">석차로 계산</button>
+      <button id="modeGrade">등급 직접 입력</button>
+    </div>
+    <div class="row-head" id="rowHead"></div>
+    <div id="rows"></div>
+    <button class="add-btn" id="addRow">+ 과목 추가</button>
+    <p class="note" id="modeNote"></p>
+  </div>
+
+  <div class="card">
+    <h2>목표 등급 역산</h2>
+    <p class="hint">앞으로 남은 학점에서 평균 몇 등급을 받아야 목표에 도달하는지 계산해요.</p>
+    <div class="goal-inputs">
+      <div>
+        <label for="goalAvg">목표 평균 등급</label>
+        <input type="number" id="goalAvg" inputmode="decimal" step="0.1" min="1" placeholder="예: 2.0">
+      </div>
+      <div>
+        <label for="futureCredits">남은 학점 수</label>
+        <input type="number" id="futureCredits" inputmode="numeric" step="1" min="1" placeholder="예: 30">
+      </div>
+    </div>
+    <div class="goal-result" id="goalResult">목표 평균과 남은 학점을 입력해 보세요.</div>
+    <p class="note">남은 학점 = 앞으로 성적표에 반영될 과목들의 학점(단위수) 합계</p>
+  </div>
+
+  <footer>
+    <p>등급 컷 기준 — 9등급제: 4·11·23·40·60·77·89·96% / 5등급제: 10·34·66·90%</p>
+    <p>계산 결과는 참고용이에요. 실제 대입 반영 방식은 대학·전형마다 달라요.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = "naesinCalc.v2";
+  var CUTS = {
+    9: [4, 11, 23, 40, 60, 77, 89, 96, 100],
+    5: [10, 34, 66, 90, 100]
+  };
+  var state = { system: 9, mode: "rank", subjects: [] };
+
+  var rowsEl = document.getElementById("rows");
+  var rowHead = document.getElementById("rowHead");
+  var modeNote = document.getElementById("modeNote");
+  var avgValue = document.getElementById("avgValue");
+  var avgMeta = document.getElementById("avgMeta");
+  var goalAvg = document.getElementById("goalAvg");
+  var futureCredits = document.getElementById("futureCredits");
+  var goalResult = document.getElementById("goalResult");
+  var sys9 = document.getElementById("sys9");
+  var sys5 = document.getElementById("sys5");
+  var modeRank = document.getElementById("modeRank");
+  var modeGrade = document.getElementById("modeGrade");
+
+  function blankSubject() { return { name: "", credits: "", total: "", rank: "", grade: "" }; }
+
+  function load() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!saved) {
+        // v1(등급 직접 입력만 있던 버전) 데이터가 있으면 이어받기
+        var v1 = JSON.parse(localStorage.getItem("naesinCalc.v1"));
+        if (v1 && Array.isArray(v1.subjects)) {
+          saved = { system: v1.system, mode: "grade", subjects: v1.subjects.map(function (s) {
+            return { name: s.name || "", credits: s.credits || "", total: "", rank: "", grade: s.grade || "" };
+          }), goalAvg: v1.goalAvg, futureCredits: v1.futureCredits };
+        }
+      }
+      if (saved && (saved.system === 9 || saved.system === 5) && Array.isArray(saved.subjects)) {
+        state.system = saved.system;
+        state.mode = saved.mode === "grade" ? "grade" : "rank";
+        state.subjects = saved.subjects.map(function (s) {
+          return { name: s.name || "", credits: s.credits || "", total: s.total || "", rank: s.rank || "", grade: s.grade || "" };
+        });
+        if (typeof saved.goalAvg === "number") goalAvg.value = saved.goalAvg;
+        if (typeof saved.futureCredits === "number") futureCredits.value = saved.futureCredits;
+      }
+    } catch (e) { /* 저장값이 깨져 있으면 초기 상태로 시작 */ }
+    if (state.subjects.length === 0) {
+      for (var i = 0; i < 3; i++) state.subjects.push(blankSubject());
+    }
+  }
+
+  function save() {
+    var data = {
+      system: state.system,
+      mode: state.mode,
+      subjects: state.subjects,
+      goalAvg: parseFloat(goalAvg.value) || undefined,
+      futureCredits: parseFloat(futureCredits.value) || undefined
+    };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* 시크릿 모드 등 */ }
+  }
+
+  function maxGrade() { return state.system === 9 ? 9 : 5; }
+
+  // 석차백분율(석차/수강자수×100)이 컷 이하인 첫 등급. 유효하지 않으면 null.
+  function gradeFromRank(s) {
+    var t = parseFloat(s.total), r = parseFloat(s.rank);
+    if (!(t > 0) || !(r >= 1)) return null;
+    if (r > t) return "invalid";
+    var pct = (r / t) * 100;
+    var cuts = CUTS[state.system];
+    for (var i = 0; i < cuts.length; i++) {
+      if (pct <= cuts[i] + 1e-9) return i + 1;
+    }
+    return cuts.length;
+  }
+
+  function effectiveGrade(s) {
+    if (state.mode === "rank") {
+      var g = gradeFromRank(s);
+      return typeof g === "number" ? g : null;
+    }
+    var d = parseFloat(s.grade);
+    return d >= 1 ? d : null;
+  }
+
+  function gradeOptions(selected) {
+    var html = '<option value="">등급</option>';
+    for (var g = 1; g <= maxGrade(); g++) {
+      html += '<option value="' + g + '"' + (String(selected) === String(g) ? " selected" : "") + ">" + g + "등급</option>";
+    }
+    return html;
+  }
+
+  function badgeHtml(s) {
+    var g = gradeFromRank(s);
+    if (g === "invalid") return '<div class="grade-badge invalid">석차>인원</div>';
+    if (g === null) return '<div class="grade-badge empty">등급</div>';
+    return '<div class="grade-badge">' + g + "등급</div>";
+  }
+
+  function escapeHtml(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function render() {
+    sys9.classList.toggle("active", state.system === 9);
+    sys5.classList.toggle("active", state.system === 5);
+    modeRank.classList.toggle("active", state.mode === "rank");
+    modeGrade.classList.toggle("active", state.mode === "grade");
+
+    var isRank = state.mode === "rank";
+    rowHead.className = "row-head" + (isRank ? "" : " grade-mode");
+    rowHead.innerHTML = isRank
+      ? "<div>과목명 (선택)</div><div>학점</div><div>수강자수</div><div>석차</div><div>등급</div><div></div>"
+      : "<div>과목명 (선택)</div><div>학점</div><div>등급</div><div></div>";
+    modeNote.textContent = isRank
+      ? "동점자가 있으면 학교는 중간석차를 적용해요. 성적표의 석차가 '5(공동)'처럼 나오면 중간석차(소수점 가능)를 넣으면 더 정확해요."
+      : "이미 확정 등급을 아는 경우 직접 선택하면 돼요.";
+
+    rowsEl.innerHTML = "";
+    state.subjects.forEach(function (s, i) {
+      var row = document.createElement("div");
+      row.className = "subject-row" + (isRank ? "" : " grade-mode");
+      var html =
+        '<input class="f-name" type="text" placeholder="예: 수학" value="' + escapeHtml(s.name) + '" data-i="' + i + '" data-k="name">' +
+        '<input class="f-credits" type="number" inputmode="numeric" min="1" step="1" placeholder="학점" value="' + escapeHtml(s.credits) + '" data-i="' + i + '" data-k="credits">';
+      if (isRank) {
+        html +=
+          '<input class="f-total" type="number" inputmode="numeric" min="1" step="1" placeholder="수강자" value="' + escapeHtml(s.total) + '" data-i="' + i + '" data-k="total">' +
+          '<input class="f-rank" type="number" inputmode="decimal" min="1" step="0.5" placeholder="석차" value="' + escapeHtml(s.rank) + '" data-i="' + i + '" data-k="rank">' +
+          badgeHtml(s);
+      } else {
+        html += '<select class="f-grade" data-i="' + i + '" data-k="grade">' + gradeOptions(s.grade) + "</select>";
+      }
+      html += '<button class="del f-del" data-i="' + i + '" aria-label="과목 삭제">×</button>';
+      row.innerHTML = html;
+      rowsEl.appendChild(row);
+    });
+    calc();
+  }
+
+  function calc() {
+    var totalCredits = 0, totalPoints = 0, counted = 0;
+    state.subjects.forEach(function (s) {
+      var c = parseFloat(s.credits), g = effectiveGrade(s);
+      if (c > 0 && g !== null) { totalCredits += c; totalPoints += c * g; counted++; }
+    });
+    if (counted === 0) {
+      avgValue.textContent = "—";
+      avgMeta.textContent = "과목을 입력하면 자동으로 계산돼요";
+    } else {
+      var avg = totalPoints / totalCredits;
+      avgValue.innerHTML = avg.toFixed(2) + "<small> 등급</small>";
+      avgMeta.textContent = counted + "과목 · 총 " + totalCredits + "학점 반영";
+    }
+    calcGoal(totalPoints, totalCredits);
+    save();
+  }
+
+  function calcGoal(totalPoints, totalCredits) {
+    var target = parseFloat(goalAvg.value);
+    var future = parseFloat(futureCredits.value);
+    if (!(target >= 1) || !(future > 0)) {
+      goalResult.className = "goal-result";
+      goalResult.textContent = "목표 평균과 남은 학점을 입력해 보세요.";
+      return;
+    }
+    if (target > maxGrade()) {
+      goalResult.className = "goal-result warn";
+      goalResult.textContent = "목표 평균은 1~" + maxGrade() + " 사이로 입력해 주세요.";
+      return;
+    }
+    var need = (target * (totalCredits + future) - totalPoints) / future;
+    if (need < 1) {
+      goalResult.className = "goal-result bad";
+      goalResult.innerHTML = "남은 과목을 전부 1등급 받아도 목표 평균 " + target.toFixed(2) + "에는 도달할 수 없어요. 목표를 조정해 보세요.";
+    } else if (need >= maxGrade()) {
+      goalResult.className = "goal-result good";
+      goalResult.innerHTML = "이미 여유 있어요! 남은 과목에서 <span class='big'>" + maxGrade() + "등급</span>을 받아도 목표를 달성해요.";
+    } else {
+      var cls = need < 2 ? "warn" : "good";
+      goalResult.className = "goal-result " + cls;
+      goalResult.innerHTML = "남은 " + future + "학점에서 평균 <span class='big'>" + need.toFixed(2) + "등급</span> 이내를 받으면 목표 달성!";
+    }
+  }
+
+  rowsEl.addEventListener("input", function (e) {
+    var i = e.target.getAttribute("data-i"), k = e.target.getAttribute("data-k");
+    if (i == null || !k) return;
+    state.subjects[i][k] = e.target.value;
+    // 포커스를 잃지 않도록 행 전체를 다시 그리지 않고 등급 배지만 갱신
+    if (state.mode === "rank" && (k === "total" || k === "rank")) {
+      var row = e.target.closest(".subject-row");
+      var old = row.querySelector(".grade-badge");
+      if (old) old.outerHTML = badgeHtml(state.subjects[i]);
+    }
+    calc();
+  });
+  rowsEl.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    if (!e.target.matches("input[data-k], select[data-k]")) return;
+    e.preventDefault();
+    var fields = rowsEl.querySelectorAll("input[data-k], select[data-k]");
+    var idx = Array.prototype.indexOf.call(fields, e.target);
+    if (idx < fields.length - 1) {
+      fields[idx + 1].focus();
+      if (fields[idx + 1].select) fields[idx + 1].select();
+    } else {
+      // 마지막 행의 마지막 칸에서 엔터 → 새 과목 추가 후 과목명으로 이동
+      document.getElementById("addRow").click();
+    }
+  });
+  rowsEl.addEventListener("click", function (e) {
+    if (!e.target.classList.contains("del")) return;
+    state.subjects.splice(Number(e.target.getAttribute("data-i")), 1);
+    if (state.subjects.length === 0) state.subjects.push(blankSubject());
+    render();
+  });
+  document.getElementById("addRow").addEventListener("click", function () {
+    state.subjects.push(blankSubject());
+    render();
+    var inputs = rowsEl.querySelectorAll('input[data-k="name"]');
+    inputs[inputs.length - 1].focus();
+  });
+  goalAvg.addEventListener("input", calc);
+  futureCredits.addEventListener("input", calc);
+  sys9.addEventListener("click", function () { switchSystem(9); });
+  sys5.addEventListener("click", function () { switchSystem(5); });
+  modeRank.addEventListener("click", function () { switchMode("rank"); });
+  modeGrade.addEventListener("click", function () { switchMode("grade"); });
+
+  function switchSystem(sys) {
+    if (state.system === sys) return;
+    state.system = sys;
+    // 5등급제로 전환 시 6~9등급 직접 입력값은 유지 불가능하므로 비움
+    state.subjects.forEach(function (s) {
+      if (parseFloat(s.grade) > maxGrade()) s.grade = "";
+    });
+    render();
+  }
+
+  function switchMode(mode) {
+    if (state.mode === mode) return;
+    state.mode = mode;
+    render();
+  }
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>

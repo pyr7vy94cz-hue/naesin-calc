@@ -157,6 +157,29 @@
   .result .value small { font-size: 1.1rem; font-weight: 700; }
   .result .meta { font-size: 0.82rem; color: var(--sub); margin-top: 2px; }
 
+  .gauge { margin-top: 14px; display: none; }
+  .gauge.show { display: block; }
+  .gauge-track {
+    position: relative; height: 10px; border-radius: 6px;
+    background: var(--card); border: 1px solid var(--line);
+  }
+  .gauge-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    border-radius: 6px; background: var(--accent);
+    transition: width .25s ease;
+  }
+  .gauge-marker {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); border: 3px solid var(--card);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: left .25s ease;
+  }
+  .gauge-ticks {
+    display: flex; justify-content: space-between;
+    font-size: 0.72rem; color: var(--sub); margin-top: 6px; font-weight: 600;
+  }
+
   .goal-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .goal-inputs label { font-size: 0.78rem; color: var(--sub); font-weight: 600; display: block; margin-bottom: 5px; }
   .goal-inputs input {
@@ -192,6 +215,13 @@
     <div class="value" id="avgValue">—</div>
     <div class="meta" id="avgMeta">과목을 입력하면 자동으로 계산돼요</div>
     <div class="meta">소수점 셋째 자리에서 반올림해 표시해요</div>
+    <div class="gauge" id="gauge">
+      <div class="gauge-track">
+        <div class="gauge-fill" id="gaugeFill"></div>
+        <div class="gauge-marker" id="gaugeMarker"></div>
+      </div>
+      <div class="gauge-ticks" id="gaugeTicks"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -358,11 +388,11 @@
       row.className = "subject-row" + (isRank ? "" : " grade-mode");
       var html =
         '<input class="f-name" type="text" placeholder="예: 수학" value="' + escapeHtml(s.name) + '" data-i="' + i + '" data-k="name">' +
-        '<input class="f-credits" type="number" inputmode="numeric" min="1" step="1" placeholder="학점" value="' + escapeHtml(s.credits) + '" data-i="' + i + '" data-k="credits">';
+        '<input class="f-credits" type="number" inputmode="numeric" min="1" step="1" placeholder="3학점" value="' + escapeHtml(s.credits) + '" data-i="' + i + '" data-k="credits">';
       if (isRank) {
         html +=
-          '<input class="f-total" type="number" inputmode="numeric" min="1" step="1" placeholder="수강자" value="' + escapeHtml(s.total) + '" data-i="' + i + '" data-k="total">' +
-          '<input class="f-rank" type="number" inputmode="decimal" min="1" step="0.5" placeholder="석차" value="' + escapeHtml(s.rank) + '" data-i="' + i + '" data-k="rank">' +
+          '<input class="f-total" type="number" inputmode="numeric" min="1" step="1" placeholder="129명" value="' + escapeHtml(s.total) + '" data-i="' + i + '" data-k="total">' +
+          '<input class="f-rank" type="number" inputmode="decimal" min="1" step="0.5" placeholder="18등" value="' + escapeHtml(s.rank) + '" data-i="' + i + '" data-k="rank">' +
           badgeHtml(s);
       } else {
         html += '<select class="f-grade" data-i="' + i + '" data-k="grade">' + gradeOptions(s.grade) + "</select>";
@@ -383,13 +413,37 @@
     if (counted === 0) {
       avgValue.textContent = "—";
       avgMeta.textContent = "과목을 입력하면 자동으로 계산돼요";
+      updateGauge(null);
     } else {
       var avg = totalPoints / totalCredits;
       avgValue.innerHTML = avg.toFixed(2) + "<small> 등급</small>";
       avgMeta.textContent = counted + "과목 · 총 " + totalCredits + "학점 반영";
+      updateGauge(avg);
     }
     calcGoal(totalPoints, totalCredits);
     save();
+  }
+
+  var gauge = document.getElementById("gauge");
+  var gaugeFill = document.getElementById("gaugeFill");
+  var gaugeMarker = document.getElementById("gaugeMarker");
+  var gaugeTicks = document.getElementById("gaugeTicks");
+
+  function updateGauge(avg) {
+    if (avg === null) { gauge.classList.remove("show"); return; }
+    gauge.classList.add("show");
+    var max = maxGrade();
+    if (gaugeTicks.children.length !== max) {
+      gaugeTicks.innerHTML = "";
+      for (var g = 1; g <= max; g++) {
+        var span = document.createElement("span");
+        span.textContent = g;
+        gaugeTicks.appendChild(span);
+      }
+    }
+    var pct = ((avg - 1) / (max - 1)) * 100;
+    gaugeFill.style.width = pct + "%";
+    gaugeMarker.style.left = pct + "%";
   }
 
   function calcGoal(totalPoints, totalCredits) {

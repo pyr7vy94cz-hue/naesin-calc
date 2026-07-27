@@ -54,10 +54,12 @@
     background: var(--card); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 5px; gap: 5px; margin-bottom: 16px;
   }
+  button { transition: transform .12s ease; }
+  button:active { transform: scale(0.94); }
   .sys-toggle button {
     border: 0; background: transparent; color: var(--sub);
     padding: 11px 8px; border-radius: 10px; font-size: 0.95rem; font-weight: 700;
-    font-family: inherit; cursor: pointer; transition: background .15s, color .15s;
+    font-family: inherit; cursor: pointer; transition: background .15s, color .15s, transform .12s ease;
   }
   .sys-toggle button.active { background: var(--accent); color: #fff; }
   .sys-toggle button span { display: block; font-size: 0.72rem; font-weight: 500; opacity: 0.85; margin-top: 2px; }
